@@ -8,7 +8,7 @@ class Parser(object):
     re_line = re.compile(
         r"^\s*(?P<field1>[\w#:]+)?\s*(?P<field2>[\w\"'.]+(,\s?\w+)?)?\s*(?P<field3>[\w\"']+(,\s?\w+)?)?\s*(?P<comment>;.*)?\s*$"  # noqa: E501
     )
-    re_literal = re.compile(r"^(?P<type>[\w\.])(\"|')(?P<number>\w+)(\"|')")
+    re_literal = re.compile(r"^(?P<type>[\w\.])(\"|')(?P<number>[\w ]+)(\"|')")
 
     def __init__(self, INSTRUCTION_SET=[]):
         self.INSTRUCTION_SET = INSTRUCTION_SET
@@ -80,7 +80,11 @@ class Parser(object):
             match = self.re_literal.search(field)
             if match:
                 # May need to add uppercase the type here?
-                xc8_literal = "{number}{type}".format(**match.groupdict())
+                matches = match.groupdict()
+                if match["type"] == "A":
+                    xc8_literal = '"{number}"'.format(**matches)
+                else:
+                    xc8_literal = "{number}{type}".format(**matches)
                 return xc8_literal
             else:
                 return field
@@ -120,9 +124,7 @@ class Parser(object):
         for key, value in tokens.items():
             if value is None:
                 tokens[key] = ""
-        string = "{field1} {field2} {field3} {comment}".format(
-            **tokens
-        ).strip()
+        string = "{field1} {field2} {field3} {comment}".format(**tokens).strip()
         for i in range(tokens.get("indent", 0)):
             string = "\t" + string
         return string

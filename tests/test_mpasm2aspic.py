@@ -15,6 +15,30 @@ class TestInstruction(unittest.TestCase):
         self.assertFalse(self.parser.is_instruction("#define"))
 
 
+class TestLiterals(unittest.TestCase):
+    def setUp(self):
+        self.parser = mpasm2aspic.Parser(mpasm2aspic.pic16f877.INSTRUCTION_SET)
+
+    def test_binary(self):
+        self.assertEqual(self.parser.fix_literals("B'01010101'"), "01010101B")
+
+    def test_decimal(self):
+        self.assertEqual(self.parser.fix_literals("D'32'"), "32D")
+
+    def test_hex(self):
+        self.assertEqual(self.parser.fix_literals("H'32'"), "32H")
+
+    def test_hex_0x(self):
+        self.assertEqual(self.parser.fix_literals("0x32"), "0x32")
+
+    def test_ascii_char(self):
+        self.assertEqual(self.parser.fix_literals("A'A'"), '"A"')
+        self.assertEqual(self.parser.fix_literals("A' '"), '" "')
+
+    def test_string(self):
+        self.assertEqual(self.parser.fix_literals("A'Hello'"), '"Hello"')
+
+
 class TestParse(unittest.TestCase):
     def setUp(self):
         self.parser = mpasm2aspic.Parser(mpasm2aspic.pic16f877.INSTRUCTION_SET)
