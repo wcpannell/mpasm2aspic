@@ -3,6 +3,14 @@
 import re
 from . import mpasm_directives
 
+EMPTY_LINE_TOKENS = {
+    "field1": None,
+    "field2": None,
+    "field3": None,
+    "comment": None,
+    "indent": 0,
+}
+
 
 class Parser(object):
     re_line = re.compile(
@@ -38,21 +46,52 @@ class Parser(object):
             tokens["indent"] = 0
             return tokens
         elif line == "":
-            return {
-                "field1": None,
-                "field2": None,
-                "field3": None,
-                "comment": None,
-                "indent": 0,
-            }
+            return EMPTY_LINE_TOKENS
         else:
-            return {
-                "field1": None,
-                "field2": None,
-                "field3": None,
-                "comment": line + "    ;#PARSE_ERROR",
-                "indent": 0,
-            }
+            tokens = self.split_match(line)
+            if tokens == EMPTY_LINE_TOKENS:
+                tokens["comment"] = line + "    ;#PARSE_ERROR"
+            return tokens
+
+    def split_match(self, line=""):
+        tokens = EMPTY_LINE_TOKENS.copy()
+
+        # Check for comments. set remaining to anything that's not a comment
+        comment_split = line.rstrip().split(";", maxsplit=1)
+        if len(comment_split) > 1:
+            remaining, comment = comment_split
+            tokens["comment"] = ";" + comment
+        else:
+            remaining = comment_split[0]
+
+        # field_candidate is a valid field if it's an instruction or directive,
+        # field_candidate could be a label if it's not.
+        field_split = remaining.split(maxsplit=1)
+        if len(field_split) > 1:
+            field_candidate, remaining = field_split
+            if self.is_directive(field_candidate) or self.is_instruction(
+                field_candidate
+            ):
+                tokens["field1"] = field_candidate
+                tokens["indent"] = 1
+
+            field_split2 = remaining.split(maxsplit=1)
+            if len(field_split2) > 1:
+                field_candidate_2, remaining_2 = field_split2
+                # field_candidate 1 & 2 are valid fields if field_candidate_2 is
+                if self.is_instruction(field_candidate_2) or self.is_directive(
+                    field_candidate_2
+                ):
+                    if tokens["field1"] is None:
+                        # field_candidate has to be a label
+                        tokens["field1"] = field_candidate
+                    tokens["field2"] = field_candidate_2
+                    tokens["field3"] = remaining_2
+
+            if (tokens["field1"] is not None) and (tokens["field2"] is None):
+                tokens["field2"] = remaining
+
+            return tokens
 
     def fix_literals(self, field=""):
         """Reformat numeric literals.

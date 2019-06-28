@@ -105,6 +105,18 @@ class TestParse(unittest.TestCase):
             },
         )
 
+    def test_expression_instruction(self):
+        self.assertEqual(
+            self.parser.parse("\tMOVLW 1 << 5"),
+            {
+                "field1": "MOVLW",
+                "field2": "1 << 5",
+                "field3": None,
+                "comment": None,
+                "indent": 1,
+            },
+        )
+
     def test_define(self):
         self.assertEqual(
             self.parser.parse("#include pic16f877a.inc"),
